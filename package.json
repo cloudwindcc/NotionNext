@@ -1,16 +1,16 @@
 {
   "name": "notion-next",
-  "version": "4.8.3",
-  "homepage": "https://github.com/tangly1024/NotionNext.git",
+  "version": "",
+  "homepage": "",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tangly1024/NotionNext.git"
+    "url": ""
   },
   "author": {
-    "name": "tangly",
-    "email": "mail@tangly1024.com",
-    "url": "http://tangly1024.com"
+    "name": "",
+    "email": "",
+    "url": "h"
   },
   "scripts": {
     "dev": "next dev",
