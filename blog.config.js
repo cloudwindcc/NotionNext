@@ -62,7 +62,7 @@ const BLOG = {
   // 欢迎语打字效果,Hexo,Matery主题支持, 英文逗号隔开多个欢迎语。
   GREETING_WORDS:
     process.env.NEXT_PUBLIC_GREETING_WORDS ||
-    '欢迎来到雲風的博客🎉',
+    '行道，做正确的事🎉,修心，正确的做事 ✍ ',
 
   // uuid重定向至 slug
   UUID_REDIRECT: process.env.UUID_REDIRECT || false
