@@ -7,6 +7,25 @@ import { getQueryParam, getQueryVariable, isBrowser } from '../lib/utils'
 
 // 在next.config.js中扫描所有主题
 export const { THEMES = [] } = getConfig()?.publicRuntimeConfig || {}
+const fallbackTheme = THEMES.includes(BLOG.THEME) ? BLOG.THEME : 'simple'
+
+const normalizeThemeName = themeQuery => {
+  const themeName =
+    typeof themeQuery === 'string' ? themeQuery.split(',')[0].trim() : ''
+
+  if (!themeName) {
+    return fallbackTheme
+  }
+
+  if (THEMES.length > 0 && !THEMES.includes(themeName)) {
+    console.warn(
+      `Theme "${themeName}" was requested but is not installed. Falling back to "${fallbackTheme}".`
+    )
+    return fallbackTheme
+  }
+
+  return themeName
+}
 
 /**
  * 获取主题配置
@@ -17,7 +36,7 @@ export const getThemeConfig = async themeQuery => {
   // 如果 themeQuery 存在且不等于默认主题，处理多主题情况
   if (typeof themeQuery === 'string' && themeQuery.trim()) {
     // 取 themeQuery 中第一个主题（以逗号为分隔符）
-    const themeName = themeQuery.split(',')[0].trim()
+    const themeName = normalizeThemeName(themeQuery)
 
     // 如果 themeQuery 不等于当前默认主题，则加载指定主题的配置
     if (themeName !== BLOG.THEME) {
@@ -61,11 +80,12 @@ export const getThemeConfig = async themeQuery => {
  * @returns
  */
 export const getBaseLayoutByTheme = theme => {
+  const safeTheme = normalizeThemeName(theme)
   const LayoutBase = ThemeComponents['LayoutBase']
-  const isDefaultTheme = !theme || theme === BLOG.THEME
+  const isDefaultTheme = !theme || safeTheme === BLOG.THEME
   if (!isDefaultTheme) {
     return dynamic(
-      () => import(`@/themes/${theme}`).then(m => m['LayoutBase']),
+      () => import(`@/themes/${safeTheme}`).then(m => m['LayoutBase']),
       { ssr: true }
     )
   }
@@ -96,7 +116,8 @@ export const useLayoutByTheme = ({ layoutName, theme }) => {
 
   const router = useRouter()
   const themeQuery = getQueryParam(router?.asPath, 'theme') || theme
-  const isDefaultTheme = !themeQuery || themeQuery === BLOG.THEME
+  const safeTheme = normalizeThemeName(themeQuery)
+  const isDefaultTheme = !themeQuery || safeTheme === BLOG.THEME
 
   // 加载非当前默认主题
   if (!isDefaultTheme) {
@@ -107,7 +128,7 @@ export const useLayoutByTheme = ({ layoutName, theme }) => {
       return components
     }
     return dynamic(
-      () => import(`@/themes/${themeQuery}`).then(m => loadThemeComponents(m)),
+      () => import(`@/themes/${safeTheme}`).then(m => loadThemeComponents(m)),
       { ssr: true }
     )
   }
