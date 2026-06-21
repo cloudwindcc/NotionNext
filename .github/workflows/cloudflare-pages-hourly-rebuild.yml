@@ -1,0 +1,25 @@
+name: Rebuild Cloudflare Pages
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    name: Trigger Pages deploy hook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Cloudflare Pages rebuild
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK_URL" ]; then
+            echo "CLOUDFLARE_PAGES_DEPLOY_HOOK_URL is not set."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --request POST "$DEPLOY_HOOK_URL"
