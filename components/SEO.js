@@ -5,58 +5,52 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 
-/**
- * 页面的Head头，有用于SEO
- * @param {*} param0
- * @returns
- */
 const SEO = props => {
   const { children, siteInfo, post, NOTION_CONFIG } = props
-  const PATH = siteConfig('PATH')
-  const LINK = siteConfig('LINK')
-  const SUB_PATH = siteConfig('SUB_PATH', '')
-  let url = PATH?.length ? `${LINK}/${SUB_PATH}` : LINK
-  let image
   const router = useRouter()
-  const meta = getSEOMeta(props, router, useGlobal()?.locale)
+  const locale = useGlobal()?.locale
+  const meta = getSEOMeta(props, router, locale)
+  const baseUrl = getBaseUrl(siteInfo, NOTION_CONFIG)
+  const url = joinUrl(baseUrl, meta?.slug || '')
+  const image =
+    toAbsoluteUrl(
+      meta?.image || siteInfo?.pageCover || '/bg_image.jpg',
+      baseUrl
+    ) || joinUrl(baseUrl, 'bg_image.jpg')
   const webFontUrl = siteConfig('FONT_URL')
 
   useEffect(() => {
-    // 使用WebFontLoader字体加载
+    if (!webFontUrl) return
+
     loadExternalResource(
       'https://cdnjs.cloudflare.com/ajax/libs/webfont/1.6.28/webfontloader.js',
       'js'
-    ).then(url => {
+    ).then(() => {
       const WebFont = window?.WebFont
       if (WebFont) {
-        // console.log('LoadWebFont', webFontUrl)
         WebFont.load({
           custom: {
-            // families: ['"LXGW WenKai"'],
             urls: webFontUrl
           }
         })
       }
     })
-  }, [])
+  }, [webFontUrl])
 
-  // SEO关键词
-  const KEYWORDS = siteConfig('KEYWORDS')
-  let keywords = meta?.tags || KEYWORDS
-  if (post?.tags && post?.tags?.length > 0) {
-    keywords = post?.tags?.join(',')
-  }
-  if (meta) {
-    url = `${url}/${meta.slug}`
-    image = meta.image || '/bg_image.jpg'
-  }
   const TITLE = siteConfig('TITLE')
+  const AUTHOR = siteConfig('AUTHOR')
+  const langCode = siteConfig('LANG', 'zh-CN', NOTION_CONFIG)
+  const ogLocale = langCode.replace('-', '_')
   const title = meta?.title || TITLE
-  const description = meta?.description || `${siteInfo?.description}`
-  const type = meta?.type || 'website'
-  const lang = siteConfig('LANG').replace('-', '_') // Facebook OpenGraph 要 zh_CN 這樣的格式才抓得到語言
-  const category = meta?.category || KEYWORDS // section 主要是像是 category 這樣的分類，Facebook 用這個來抓連結的分類
-  const favicon = siteConfig('BLOG_FAVICON')
+  const description = meta?.description || `${siteInfo?.description || ''}`
+  const type = meta?.type === 'Post' ? 'article' : 'website'
+  const favicon = siteConfig('BLOG_FAVICON', '/favicon.ico', NOTION_CONFIG)
+  const keywords = normalizeKeywords(meta?.tags || siteConfig('KEYWORDS'))
+  const category = meta?.category || siteConfig('KEYWORDS')
+  const publishedAt = toISODate(meta?.publishDate || meta?.publishDay)
+  const modifiedAt =
+    toISODate(meta?.lastEditedDate || meta?.lastEditedDay) || publishedAt
+  const feedTitle = `${siteInfo?.title || TITLE} Feed`
   const BACKGROUND_DARK = siteConfig('BACKGROUND_DARK', '', NOTION_CONFIG)
 
   const SEO_BAIDU_SITE_VERIFICATION = siteConfig(
@@ -70,8 +64,6 @@ const SEO = props => {
     null,
     NOTION_CONFIG
   )
-
-  const BLOG_FAVICON = siteConfig('BLOG_FAVICON', null, NOTION_CONFIG)
 
   const COMMENT_WEBMENTION_ENABLE = siteConfig(
     'COMMENT_WEBMENTION_ENABLE',
@@ -96,18 +88,60 @@ const SEO = props => {
   )
 
   const FACEBOOK_PAGE = siteConfig('FACEBOOK_PAGE', null, NOTION_CONFIG)
+  const structuredData = generateStructuredData({
+    meta,
+    siteInfo,
+    url,
+    image,
+    author: AUTHOR,
+    keywords,
+    NOTION_CONFIG
+  })
 
-  const AUTHOR = siteConfig('AUTHOR')
   return (
     <Head>
-      <link rel='icon' href={favicon} />
       <title>{title}</title>
+      <link rel='icon' href={favicon} />
+      <link rel='canonical' href={url} />
+      <link
+        rel='alternate'
+        type='application/rss+xml'
+        title={feedTitle}
+        href={joinUrl(baseUrl, 'rss/feed.xml')}
+      />
+      <link
+        rel='alternate'
+        type='application/atom+xml'
+        title={`${feedTitle} Atom`}
+        href={joinUrl(baseUrl, 'rss/atom.xml')}
+      />
+      <link
+        rel='alternate'
+        type='application/feed+json'
+        title={`${feedTitle} JSON`}
+        href={joinUrl(baseUrl, 'rss/feed.json')}
+      />
+      <link
+        rel='alternate'
+        type='text/plain'
+        title={`${siteInfo?.title || TITLE} llms.txt`}
+        href={joinUrl(baseUrl, 'llms.txt')}
+      />
+      <link
+        rel='sitemap'
+        type='application/xml'
+        title='Sitemap'
+        href={joinUrl(baseUrl, 'sitemap.xml')}
+      />
       <meta name='theme-color' content={BACKGROUND_DARK} />
       <meta
         name='viewport'
         content='width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0'
       />
-      <meta name='robots' content='follow, index, max-snippet:-1, max-image-preview:large, max-video-preview:-1' />
+      <meta
+        name='robots'
+        content='follow, index, max-snippet:-1, max-image-preview:large, max-video-preview:-1'
+      />
       <meta charSet='UTF-8' />
       <meta name='format-detection' content='telephone=no' />
       <meta name='mobile-web-app-capable' content='yes' />
@@ -115,7 +149,6 @@ const SEO = props => {
       <meta name='apple-mobile-web-app-status-bar-style' content='default' />
       <meta name='apple-mobile-web-app-title' content={title} />
 
-      {/* 搜索引擎验证 */}
       {SEO_GOOGLE_SITE_VERIFICATION && (
         <meta
           name='google-site-verification'
@@ -129,18 +162,15 @@ const SEO = props => {
         />
       )}
 
-      {/* 基础SEO元数据 */}
-      <meta name='keywords' content={keywords} />
+      <meta name='keywords' content={keywords.join(', ')} />
       <meta name='description' content={description} />
       <meta name='author' content={AUTHOR} />
       <meta name='generator' content='NotionNext' />
-
-      {/* 语言和地区 */}
-      <meta httpEquiv='content-language' content={siteConfig('LANG')} />
+      <meta httpEquiv='content-language' content={langCode} />
       <meta name='geo.region' content={siteConfig('GEO_REGION', 'CN')} />
       <meta name='geo.country' content={siteConfig('GEO_COUNTRY', 'CN')} />
-      {/* Open Graph 元数据 */}
-      <meta property='og:locale' content={lang} />
+
+      <meta property='og:locale' content={ogLocale} />
       <meta property='og:title' content={title} />
       <meta property='og:description' content={description} />
       <meta property='og:url' content={url} />
@@ -148,19 +178,22 @@ const SEO = props => {
       <meta property='og:image:width' content='1200' />
       <meta property='og:image:height' content='630' />
       <meta property='og:image:alt' content={title} />
-      <meta property='og:site_name' content={siteConfig('TITLE')} />
+      <meta property='og:site_name' content={siteInfo?.title || TITLE} />
       <meta property='og:type' content={type} />
 
-      {/* Twitter Card 元数据 */}
       <meta name='twitter:card' content='summary_large_image' />
-      <meta name='twitter:site' content={siteConfig('TWITTER_SITE', '@NotionNext')} />
-      <meta name='twitter:creator' content={siteConfig('TWITTER_CREATOR', '@NotionNext')} />
+      <meta
+        name='twitter:site'
+        content={siteConfig('TWITTER_SITE', '@NotionNext')}
+      />
+      <meta
+        name='twitter:creator'
+        content={siteConfig('TWITTER_CREATOR', '@NotionNext')}
+      />
       <meta name='twitter:title' content={title} />
       <meta name='twitter:description' content={description} />
       <meta name='twitter:image' content={image} />
       <meta name='twitter:image:alt' content={title} />
-
-      <link rel='icon' href={BLOG_FAVICON} />
 
       {COMMENT_WEBMENTION_ENABLE && (
         <>
@@ -181,216 +214,435 @@ const SEO = props => {
       {ANALYTICS_BUSUANZI_ENABLE && (
         <meta name='referrer' content='no-referrer-when-downgrade' />
       )}
-      {/* 文章特定元数据 */}
+
       {meta?.type === 'Post' && (
         <>
-          <meta property='article:published_time' content={meta.publishDay} />
-          <meta property='article:modified_time' content={meta.lastEditedDay} />
+          {publishedAt && (
+            <meta property='article:published_time' content={publishedAt} />
+          )}
+          {modifiedAt && (
+            <meta property='article:modified_time' content={modifiedAt} />
+          )}
           <meta property='article:author' content={AUTHOR} />
           <meta property='article:section' content={category} />
-          <meta property='article:tag' content={keywords} />
-          <meta property='article:publisher' content={FACEBOOK_PAGE} />
+          {keywords.map(keyword => (
+            <meta
+              key={`article-tag-${keyword}`}
+              property='article:tag'
+              content={keyword}
+            />
+          ))}
+          {FACEBOOK_PAGE && (
+            <meta property='article:publisher' content={FACEBOOK_PAGE} />
+          )}
         </>
       )}
 
-      {/* 结构化数据 */}
       <script
         type='application/ld+json'
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(generateStructuredData(meta, siteInfo, url, image, AUTHOR))
+          __html: JSON.stringify(structuredData)
         }}
       />
 
-      {/* DNS预取和预连接 */}
       <link rel='dns-prefetch' href='//fonts.googleapis.com' />
       <link rel='dns-prefetch' href='//www.google-analytics.com' />
       <link rel='dns-prefetch' href='//www.googletagmanager.com' />
-      <link rel='preconnect' href='https://fonts.gstatic.com' crossOrigin='anonymous' />
-
-      {/* 预加载关键资源 */}
-      <link rel='preload' href='/fonts/inter-var.woff2' as='font' type='font/woff2' crossOrigin='anonymous' />
+      <link
+        rel='preconnect'
+        href='https://fonts.gstatic.com'
+        crossOrigin='anonymous'
+      />
+      <link
+        rel='preload'
+        href='/fonts/inter-var.woff2'
+        as='font'
+        type='font/woff2'
+        crossOrigin='anonymous'
+      />
 
       {children}
     </Head>
   )
 }
 
-/**
- * 生成结构化数据
- * @param {*} meta
- * @param {*} siteInfo
- * @param {*} url
- * @param {*} image
- * @param {*} author
- * @returns
- */
-const generateStructuredData = (meta, siteInfo, url, image, author) => {
-  const baseData = {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: siteInfo?.title,
-    description: siteInfo?.description,
-    url: siteConfig('LINK'),
-    author: {
-      '@type': 'Person',
-      name: author
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: siteInfo?.title,
-      logo: {
-        '@type': 'ImageObject',
-        url: siteInfo?.icon
-      }
-    }
-  }
+const generateStructuredData = ({
+  meta,
+  siteInfo,
+  url,
+  image,
+  author,
+  keywords,
+  NOTION_CONFIG
+}) => {
+  const baseUrl = getBaseUrl(siteInfo, NOTION_CONFIG)
+  const siteTitle = siteInfo?.title || siteConfig('TITLE', null, NOTION_CONFIG)
+  const siteDescription =
+    siteInfo?.description || siteConfig('DESCRIPTION', null, NOTION_CONFIG)
+  const langCode = siteConfig('LANG', 'zh-CN', NOTION_CONFIG)
+  const authorId = `${baseUrl}/#person`
+  const publisherId = `${baseUrl}/#publisher`
+  const websiteId = `${baseUrl}/#website`
+  const webpageId = `${url}#webpage`
+  const breadcrumbId = `${url}#breadcrumb`
+  const logo =
+    toAbsoluteUrl(siteInfo?.icon, baseUrl) ||
+    toAbsoluteUrl(
+      siteConfig('BLOG_FAVICON', '/favicon.ico', NOTION_CONFIG),
+      baseUrl
+    )
+  const publishedAt = toISODate(meta?.publishDate || meta?.publishDay)
+  const modifiedAt =
+    toISODate(meta?.lastEditedDate || meta?.lastEditedDay) || publishedAt
+  const sameAs = getSameAsLinks(NOTION_CONFIG)
 
-  // 如果是文章页面，添加文章结构化数据
+  const graph = [
+    {
+      '@type': 'Person',
+      '@id': authorId,
+      name: author,
+      url: baseUrl,
+      sameAs
+    },
+    {
+      '@type': 'Organization',
+      '@id': publisherId,
+      name: siteTitle,
+      url: baseUrl,
+      logo: logo
+        ? {
+            '@type': 'ImageObject',
+            url: logo
+          }
+        : undefined,
+      sameAs
+    },
+    {
+      '@type': 'WebSite',
+      '@id': websiteId,
+      url: baseUrl,
+      name: siteTitle,
+      description: siteDescription,
+      inLanguage: langCode,
+      publisher: {
+        '@id': publisherId
+      },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: joinUrl(baseUrl, 'search/{search_term_string}')
+        },
+        'query-input': 'required name=search_term_string'
+      }
+    },
+    {
+      '@type': 'WebPage',
+      '@id': webpageId,
+      url,
+      name: meta?.title || siteTitle,
+      description: meta?.description || siteDescription,
+      isPartOf: {
+        '@id': websiteId
+      },
+      inLanguage: langCode,
+      primaryImageOfPage: image
+        ? {
+            '@type': 'ImageObject',
+            url: image
+          }
+        : undefined,
+      breadcrumb: {
+        '@id': breadcrumbId
+      },
+      datePublished: publishedAt,
+      dateModified: modifiedAt
+    },
+    createBreadcrumbData({
+      breadcrumbId,
+      baseUrl,
+      url,
+      title: meta?.title || siteTitle,
+      category: meta?.category
+    })
+  ]
+
   if (meta?.type === 'Post') {
-    return {
-      '@context': 'https://schema.org',
+    graph.push({
       '@type': 'BlogPosting',
+      '@id': `${url}#article`,
+      mainEntityOfPage: {
+        '@id': webpageId
+      },
       headline: meta.title,
       description: meta.description,
-      image: image,
-      url: url,
-      datePublished: meta.publishDay,
-      dateModified: meta.lastEditedDay || meta.publishDay,
+      image: image ? [image] : undefined,
+      url,
+      datePublished: publishedAt,
+      dateModified: modifiedAt,
       author: {
-        '@type': 'Person',
-        name: author
+        '@id': authorId
       },
       publisher: {
-        '@type': 'Organization',
-        name: siteInfo?.title,
-        logo: {
-          '@type': 'ImageObject',
-          url: siteInfo?.icon
-        }
+        '@id': publisherId
       },
-      mainEntityOfPage: {
-        '@type': 'WebPage',
-        '@id': url
-      },
-      keywords: meta.tags?.join(', '),
-      articleSection: meta.category
-    }
+      inLanguage: langCode,
+      isAccessibleForFree: !meta.password,
+      articleSection: meta.category,
+      keywords
+    })
   }
 
-  return baseData
+  return cleanStructuredData({
+    '@context': 'https://schema.org',
+    '@graph': graph
+  })
 }
 
-/**
- * 获取SEO信息
- * @param {*} props
- * @param {*} router
- */
-const getSEOMeta = (props, router, locale) => {
+const createBreadcrumbData = ({
+  breadcrumbId,
+  baseUrl,
+  url,
+  title,
+  category
+}) => {
+  const items = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: baseUrl
+    }
+  ]
+
+  if (category) {
+    items.push({
+      '@type': 'ListItem',
+      position: items.length + 1,
+      name: category,
+      item: joinUrl(baseUrl, `category/${encodeURIComponent(category)}`)
+    })
+  }
+
+  items.push({
+    '@type': 'ListItem',
+    position: items.length + 1,
+    name: title,
+    item: url
+  })
+
+  return {
+    '@type': 'BreadcrumbList',
+    '@id': breadcrumbId,
+    itemListElement: items
+  }
+}
+
+const getSEOMeta = (props, router, locale = {}) => {
   const { post, siteInfo, tag, category, page } = props
   const keyword = router?.query?.s
+  const title = siteInfo?.title || siteConfig('TITLE')
+  const description = siteInfo?.description || siteConfig('DESCRIPTION')
+  const pageCover = siteInfo?.pageCover
+  const labels = {
+    archive: locale?.NAV?.ARCHIVE || 'Archive',
+    search: locale?.NAV?.SEARCH || 'Search',
+    notFound: locale?.NAV?.PAGE_NOT_FOUND || 'Page Not Found',
+    category: locale?.COMMON?.CATEGORY || 'Category',
+    tags: locale?.COMMON?.TAGS || 'Tags'
+  }
 
-  const TITLE = siteConfig('TITLE')
   switch (router.route) {
     case '/':
       return {
-        title: `${siteInfo?.title} | ${siteInfo?.description}`,
-        description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        title: `${title} | ${description}`,
+        description,
+        image: pageCover,
         slug: '',
         type: 'website'
       }
     case '/archive':
       return {
-        title: `${locale.NAV.ARCHIVE} | ${siteInfo?.title}`,
-        description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        title: `${labels.archive} | ${title}`,
+        description,
+        image: pageCover,
         slug: 'archive',
         type: 'website'
       }
     case '/page/[page]':
       return {
-        title: `${page} | Page | ${siteInfo?.title}`,
-        description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
-        slug: 'page/' + page,
+        title: `${page} | Page | ${title}`,
+        description,
+        image: pageCover,
+        slug: `page/${page}`,
         type: 'website'
       }
     case '/category/[category]':
-      return {
-        title: `${category} | ${locale.COMMON.CATEGORY} | ${siteInfo?.title}`,
-        description: `${siteInfo?.description}`,
-        slug: 'category/' + category,
-        image: `${siteInfo?.pageCover}`,
-        type: 'website'
-      }
     case '/category/[category]/page/[page]':
       return {
-        title: `${category} | ${locale.COMMON.CATEGORY} | ${siteInfo?.title}`,
-        description: `${siteInfo?.description}`,
-        slug: 'category/' + category,
-        image: `${siteInfo?.pageCover}`,
-        type: 'website'
+        title: `${category} | ${labels.category} | ${title}`,
+        description,
+        slug: `category/${category}`,
+        image: pageCover,
+        type: 'website',
+        category
       }
     case '/tag/[tag]':
     case '/tag/[tag]/page/[page]':
       return {
-        title: `${tag} | ${locale.COMMON.TAGS} | ${siteInfo?.title}`,
-        description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
-        slug: 'tag/' + tag,
-        type: 'website'
+        title: `${tag} | ${labels.tags} | ${title}`,
+        description,
+        image: pageCover,
+        slug: `tag/${tag}`,
+        type: 'website',
+        tags: [tag]
       }
     case '/search':
       return {
-        title: `${keyword || ''}${keyword ? ' | ' : ''}${locale.NAV.SEARCH} | ${siteInfo?.title}`,
-        description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        title: `${keyword || ''}${keyword ? ' | ' : ''}${labels.search} | ${title}`,
+        description,
+        image: pageCover,
         slug: 'search',
         type: 'website'
       }
     case '/search/[keyword]':
     case '/search/[keyword]/page/[page]':
       return {
-        title: `${keyword || ''}${keyword ? ' | ' : ''}${locale.NAV.SEARCH} | ${siteInfo?.title}`,
-        description: TITLE,
-        image: `${siteInfo?.pageCover}`,
-        slug: 'search/' + (keyword || ''),
+        title: `${keyword || ''}${keyword ? ' | ' : ''}${labels.search} | ${title}`,
+        description,
+        image: pageCover,
+        slug: `search/${keyword || ''}`,
         type: 'website'
       }
     case '/404':
       return {
-        title: `${siteInfo?.title} | ${locale.NAV.PAGE_NOT_FOUND}`,
-        image: `${siteInfo?.pageCover}`
+        title: `${title} | ${labels.notFound}`,
+        description,
+        image: pageCover,
+        slug: '404',
+        type: 'website'
       }
     case '/tag':
       return {
-        title: `${locale.COMMON.TAGS} | ${siteInfo?.title}`,
-        description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        title: `${labels.tags} | ${title}`,
+        description,
+        image: pageCover,
         slug: 'tag',
         type: 'website'
       }
     case '/category':
       return {
-        title: `${locale.COMMON.CATEGORY} | ${siteInfo?.title}`,
-        description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        title: `${labels.category} | ${title}`,
+        description,
+        image: pageCover,
         slug: 'category',
         type: 'website'
       }
     default:
       return {
-        title: post
-          ? `${post?.title} | ${siteInfo?.title}`
-          : `${siteInfo?.title} | loading`,
-        description: post?.summary,
+        title: post ? `${post?.title} | ${title}` : `${title} | loading`,
+        description: post?.summary || description,
         type: post?.type,
         slug: post?.slug,
-        image: post?.pageCoverThumbnail || `${siteInfo?.pageCover}`,
-        category: post?.category?.[0],
-        tags: post?.tags
+        image: post?.pageCoverThumbnail || post?.pageCover || pageCover,
+        category: normalizeCategory(post?.category),
+        tags: post?.tags,
+        publishDay: post?.publishDay,
+        publishDate: post?.publishDate,
+        lastEditedDay: post?.lastEditedDay,
+        lastEditedDate: post?.lastEditedDate,
+        password: post?.password
       }
   }
+}
+
+const getBaseUrl = (siteInfo, NOTION_CONFIG) => {
+  const link =
+    siteConfig('LINK', siteInfo?.link, NOTION_CONFIG) ||
+    siteInfo?.link ||
+    'https://example.com'
+  const subPath = siteConfig('SUB_PATH', '', NOTION_CONFIG)
+  return joinUrl(link, subPath || '')
+}
+
+const joinUrl = (base, path = '') => {
+  const normalizedBase = stripTrailingSlash(`${base || ''}`)
+  const normalizedPath = `${path || ''}`.replace(/^\/+/, '')
+  return normalizedPath ? `${normalizedBase}/${normalizedPath}` : normalizedBase
+}
+
+const stripTrailingSlash = value => `${value || ''}`.replace(/\/+$/, '')
+
+const toAbsoluteUrl = (value, baseUrl) => {
+  if (!value || typeof value !== 'string') return undefined
+  if (/^https?:\/\//i.test(value)) return value
+  if (value.startsWith('//')) return `https:${value}`
+  if (value.startsWith('/')) return joinUrl(baseUrl, value)
+  if (value.includes('/') || value.includes('.')) return joinUrl(baseUrl, value)
+  return undefined
+}
+
+const toISODate = value => {
+  if (!value) return undefined
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return undefined
+  return date.toISOString()
+}
+
+const normalizeKeywords = value => {
+  if (Array.isArray(value)) {
+    return value.map(item => `${item}`.trim()).filter(Boolean)
+  }
+  return `${value || ''}`
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
+const normalizeCategory = category => {
+  if (Array.isArray(category)) return category[0]
+  return category || undefined
+}
+
+const getSameAsLinks = NOTION_CONFIG => {
+  const keys = [
+    'CONTACT_GITHUB',
+    'CONTACT_TWITTER',
+    'CONTACT_LINKEDIN',
+    'CONTACT_INSTAGRAM',
+    'CONTACT_BILIBILI',
+    'CONTACT_YOUTUBE',
+    'CONTACT_XIAOHONGSHU'
+  ]
+  return keys
+    .map(key => siteConfig(key, '', NOTION_CONFIG))
+    .filter(value => typeof value === 'string' && /^https?:\/\//i.test(value))
+}
+
+const cleanStructuredData = value => {
+  if (Array.isArray(value)) {
+    const array = value
+      .map(item => cleanStructuredData(item))
+      .filter(item => item !== undefined)
+    return array.length > 0 ? array : undefined
+  }
+
+  if (value && typeof value === 'object') {
+    const object = Object.entries(value).reduce((result, [key, item]) => {
+      const cleaned = cleanStructuredData(item)
+      if (cleaned !== undefined) {
+        result[key] = cleaned
+      }
+      return result
+    }, {})
+    return Object.keys(object).length > 0 ? object : undefined
+  }
+
+  if (value === undefined || value === null || value === '') {
+    return undefined
+  }
+
+  return value
 }
 
 export default SEO

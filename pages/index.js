@@ -2,6 +2,7 @@ import BLOG from '@/blog.config'
 import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData, getPostBlocks } from '@/lib/db/SiteDataApi'
 import { generateRobotsTxt } from '@/lib/utils/robots.txt'
+import { generateLlmsTxt } from '@/lib/utils/llms.txt'
 import { generateRss } from '@/lib/utils/rss'
 import { generateSitemapXml } from '@/lib/utils/sitemap.xml'
 import { DynamicLayout } from '@/themes/theme'
@@ -62,6 +63,8 @@ export async function getStaticProps(req) {
   generateRss(props)
   // 生成
   generateSitemapXml(props)
+  // 生成面向 AI 搜索和答案引擎的站点说明
+  generateLlmsTxt(props)
   // 检查数据是否需要从algolia删除
   checkDataFromAlgolia(props)
   if (siteConfig('UUID_REDIRECT', false, props?.NOTION_CONFIG)) {

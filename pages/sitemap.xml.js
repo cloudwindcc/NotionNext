@@ -27,7 +27,7 @@ export const getServerSideProps = async ctx => {
     fields = fields.concat(localeFields)
   }
 
-  fields = getUniqueFields(fields);
+  fields = getUniqueFields(fields)
 
   // 缓存
   ctx.res.setHeader(
@@ -67,12 +67,6 @@ function generateLocalesSitemap(link, allPages, locale) {
       priority: '0.7'
     },
     {
-      loc: `${link}${locale}/rss/feed.xml`,
-      lastmod: dateNow,
-      changefreq: 'daily',
-      priority: '0.7'
-    },
-    {
       loc: `${link}${locale}/search`,
       lastmod: dateNow,
       changefreq: 'daily',
@@ -87,16 +81,20 @@ function generateLocalesSitemap(link, allPages, locale) {
   ]
   const postFields =
     allPages
-      ?.filter(p => p.status === BLOG.NOTION_PROPERTY_NAME.status_publish)
+      ?.filter(
+        p =>
+          p.status === BLOG.NOTION_PROPERTY_NAME.status_publish &&
+          ['Post', 'Page'].includes(p?.type)
+      )
       ?.map(post => {
         const slugWithoutLeadingSlash = post?.slug.startsWith('/')
           ? post?.slug?.slice(1)
           : post.slug
         return {
           loc: `${link}${locale}/${slugWithoutLeadingSlash}`,
-          lastmod: new Date(post?.publishDay).toISOString().split('T')[0],
-          changefreq: 'daily',
-          priority: '0.7'
+          lastmod: getLastmod(post),
+          changefreq: post?.type === 'Post' ? 'weekly' : 'monthly',
+          priority: post?.type === 'Post' ? '0.8' : '0.6'
         }
       }) ?? []
 
@@ -104,17 +102,36 @@ function generateLocalesSitemap(link, allPages, locale) {
 }
 
 function getUniqueFields(fields) {
-  const uniqueFieldsMap = new Map();
+  const uniqueFieldsMap = new Map()
 
   fields.forEach(field => {
-    const existingField = uniqueFieldsMap.get(field.loc);
+    const existingField = uniqueFieldsMap.get(field.loc)
 
-    if (!existingField || new Date(field.lastmod) > new Date(existingField.lastmod)) {
-      uniqueFieldsMap.set(field.loc, field);
+    if (
+      !existingField ||
+      new Date(field.lastmod) > new Date(existingField.lastmod)
+    ) {
+      uniqueFieldsMap.set(field.loc, field)
     }
-  });
+  })
 
-  return Array.from(uniqueFieldsMap.values());
+  return Array.from(uniqueFieldsMap.values())
 }
 
-export default () => {}
+function getLastmod(post) {
+  const value =
+    post?.lastEditedDate ||
+    post?.publishDate ||
+    post?.lastEditedDay ||
+    post?.publishDay ||
+    Date.now()
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toISOString().split('T')[0]
+  }
+  return date.toISOString().split('T')[0]
+}
+
+const SitemapXml = () => {}
+
+export default SitemapXml
