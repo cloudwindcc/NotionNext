@@ -54,8 +54,8 @@ const MyApp = ({ Component, pageProps }) => {
   const enableClerk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
   const content = (
     <GlobalContextProvider {...pageProps}>
+      <SEO {...pageProps} />
       <GLayout {...pageProps}>
-        <SEO {...pageProps} />
         <Component {...pageProps} />
       </GLayout>
       <ExternalPlugins {...pageProps} />
