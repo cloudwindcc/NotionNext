@@ -52,22 +52,24 @@ const MyApp = ({ Component, pageProps }) => {
   )
 
   const enableClerk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-  const page = (
-    <GLayout {...pageProps}>
-      <Component {...pageProps} />
-    </GLayout>
+  const content = (
+    <GlobalContextProvider {...pageProps}>
+      <GLayout {...pageProps}>
+        <Component {...pageProps} />
+      </GLayout>
+      <ExternalPlugins {...pageProps} />
+    </GlobalContextProvider>
   )
 
   return (
-    <GlobalContextProvider {...pageProps}>
+    <>
       <SEO {...pageProps} />
       {enableClerk ? (
-        <ClerkProvider localization={zhCN}>{page}</ClerkProvider>
+        <ClerkProvider localization={zhCN}>{content}</ClerkProvider>
       ) : (
-        page
+        content
       )}
-      <ExternalPlugins {...pageProps} />
-    </GlobalContextProvider>
+    </>
   )
 }
 
