@@ -1,6 +1,6 @@
 import { siteConfig } from '@/lib/config'
-import { useGlobal } from '@/lib/global'
 import { loadExternalResource } from '@/lib/utils'
+import { generateLocaleDict } from '@/lib/utils/lang'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 const SEO = props => {
   const { children, siteInfo, post, NOTION_CONFIG } = props
   const router = useRouter()
-  const locale = useGlobal()?.locale
+  const locale = generateLocaleDict(siteConfig('LANG', 'zh-CN', NOTION_CONFIG))
   const meta = getSEOMeta(props, router, locale)
   const baseUrl = getBaseUrl(siteInfo, NOTION_CONFIG)
   const url = joinUrl(baseUrl, meta?.slug || '')
