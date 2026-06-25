@@ -15,24 +15,6 @@ const withAgentDiscoveryHeaders = (response: NextResponse) => {
   return response
 }
 
-const wantsMarkdownOverview = (req: NextRequest) => {
-  const accept = req.headers.get('accept')?.toLowerCase() || ''
-  return (
-    req.method === 'GET' &&
-    req.nextUrl.pathname === '/' &&
-    accept.includes('text/markdown')
-  )
-}
-
-const rewriteToMarkdownOverview = (req: NextRequest) => {
-  const url = req.nextUrl.clone()
-  url.pathname = '/llms.txt'
-  url.search = ''
-  const response = NextResponse.rewrite(url)
-  response.headers.set('Vary', 'Accept')
-  return withAgentDiscoveryHeaders(response)
-}
-
 /**
  * Clerk 身份验证中间件
  */
@@ -63,10 +45,6 @@ const isTenantAdminRoute = createRouteMatcher([
  */
 // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 const noAuthMiddleware = async (req: NextRequest, ev: any) => {
-  if (wantsMarkdownOverview(req)) {
-    return rewriteToMarkdownOverview(req)
-  }
-
   // 如果没有配置 Clerk 相关环境变量，返回一个默认响应或者继续处理请求
   if (BLOG['UUID_REDIRECT']) {
     let redirectJson: Record<string, string> = {}
@@ -98,10 +76,6 @@ const noAuthMiddleware = async (req: NextRequest, ev: any) => {
  */
 const authMiddleware = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
   ? clerkMiddleware((auth, req) => {
-      if (wantsMarkdownOverview(req)) {
-        return rewriteToMarkdownOverview(req)
-      }
-
       const { userId } = auth()
       // 处理 /dashboard 路由的登录保护
       if (isTenantRoute(req)) {
