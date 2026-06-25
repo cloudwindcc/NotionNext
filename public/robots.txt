@@ -1,5 +1,6 @@
 # Search engines
 User-agent: *
+Content-Signal: search=yes, ai-input=yes
 Allow: /
 
 # ByteDance / Doubao ecosystem
