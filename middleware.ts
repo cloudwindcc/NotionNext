@@ -4,6 +4,17 @@ import { checkStrIsNotionId, getLastPartOfUrl } from '@/lib/utils'
 import { idToUuid } from 'notion-utils'
 import BLOG from './blog.config'
 
+const AGENT_DISCOVERY_LINKS = [
+  '</llms.txt>; rel="alternate"; type="text/plain"; title="llms.txt"',
+  '</sitemap.xml>; rel="sitemap"; type="application/xml"',
+  '</rss/feed.xml>; rel="alternate"; type="application/rss+xml"; title="RSS"'
+].join(', ')
+
+const withAgentDiscoveryHeaders = (response: NextResponse) => {
+  response.headers.set('Link', AGENT_DISCOVERY_LINKS)
+  return response
+}
+
 /**
  * Clerk 身份验证中间件
  */
@@ -58,7 +69,7 @@ const noAuthMiddleware = async (req: NextRequest, ev: any) => {
       return NextResponse.redirect(redirectToUrl, 308)
     }
   }
-  return NextResponse.next()
+  return withAgentDiscoveryHeaders(NextResponse.next())
 }
 /**
  * 鉴权中间件
@@ -87,7 +98,7 @@ const authMiddleware = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
       }
 
       // 默认继续处理请求
-      return NextResponse.next()
+      return withAgentDiscoveryHeaders(NextResponse.next())
     })
   : noAuthMiddleware
 
