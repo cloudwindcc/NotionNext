@@ -65,6 +65,12 @@ const SEO = props => {
     NOTION_CONFIG
   )
 
+  const SEO_BYTEDANCE_SITE_VERIFICATION = siteConfig(
+    'SEO_BYTEDANCE_SITE_VERIFICATION',
+    'azOdpkb8fSTLVojRRule',
+    NOTION_CONFIG
+  )
+
   const COMMENT_WEBMENTION_ENABLE = siteConfig(
     'COMMENT_WEBMENTION_ENABLE',
     null,
@@ -159,6 +165,12 @@ const SEO = props => {
         <meta
           name='baidu-site-verification'
           content={SEO_BAIDU_SITE_VERIFICATION}
+        />
+      )}
+      {SEO_BYTEDANCE_SITE_VERIFICATION && (
+        <meta
+          name='bytedance-verification-code'
+          content={SEO_BYTEDANCE_SITE_VERIFICATION}
         />
       )}
 
