@@ -65,12 +65,14 @@ const SEO = props => {
     NOTION_CONFIG
   )
 
+  const defaultByteDanceSiteVerification =
+    getDefaultByteDanceSiteVerification(baseUrl)
   const SEO_BYTEDANCE_SITE_VERIFICATION =
     siteConfig(
       'SEO_BYTEDANCE_SITE_VERIFICATION',
-      'azOdpkb8fSTLVojRRule',
+      defaultByteDanceSiteVerification,
       NOTION_CONFIG
-    ) || 'azOdpkb8fSTLVojRRule'
+    ) || defaultByteDanceSiteVerification
 
   const COMMENT_WEBMENTION_ENABLE = siteConfig(
     'COMMENT_WEBMENTION_ENABLE',
@@ -585,6 +587,32 @@ const joinUrl = (base, path = '') => {
 }
 
 const stripTrailingSlash = value => `${value || ''}`.replace(/\/+$/, '')
+
+const BYTEDANCE_SITE_VERIFICATION_CODES = {
+  'kang.ink': 'azOdpkb8fSTLVojRRule',
+  'www.kang.ink': 'azOdpkb8fSTLVojRRule',
+  'huawei.meme': 'rjsW6WJIxR0ry1Qy6yAi',
+  'www.huawei.meme': 'rjsW6WJIxR0ry1Qy6yAi'
+}
+
+const getDefaultByteDanceSiteVerification = baseUrl => {
+  const host = getUrlHost(baseUrl)
+  return (
+    BYTEDANCE_SITE_VERIFICATION_CODES[host] ||
+    BYTEDANCE_SITE_VERIFICATION_CODES['www.kang.ink']
+  )
+}
+
+const getUrlHost = value => {
+  try {
+    return new URL(value).hostname.toLowerCase()
+  } catch {
+    return `${value || ''}`
+      .replace(/^https?:\/\//i, '')
+      .split('/')[0]
+      .toLowerCase()
+  }
+}
 
 const toAbsoluteUrl = (value, baseUrl) => {
   if (!value || typeof value !== 'string') return undefined
