@@ -5,6 +5,7 @@ import { generateRobotsTxt } from '@/lib/utils/robots.txt'
 import { generateLlmsTxt } from '@/lib/utils/llms.txt'
 import { generateRss } from '@/lib/utils/rss'
 import { generateSitemapXml } from '@/lib/utils/sitemap.xml'
+import { generateSogouVerificationTxt } from '@/lib/utils/sogou-verification.txt'
 import { DynamicLayout } from '@/themes/theme'
 import { generateRedirectJson } from '@/lib/utils/redirect'
 import { checkDataFromAlgolia } from '@/lib/plugins/algolia'
@@ -65,6 +66,7 @@ export async function getStaticProps(req) {
   generateSitemapXml(props)
   // 生成面向 AI 搜索和答案引擎的站点说明
   generateLlmsTxt(props)
+  generateSogouVerificationTxt(props)
   // 检查数据是否需要从algolia删除
   checkDataFromAlgolia(props)
   if (siteConfig('UUID_REDIRECT', false, props?.NOTION_CONFIG)) {
