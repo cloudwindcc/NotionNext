@@ -143,6 +143,12 @@ const SEO = props => {
         href={joinUrl(baseUrl, 'llms.txt')}
       />
       <link
+        rel='alternate'
+        type='application/json'
+        title={`${siteInfo?.title || TITLE} AI knowledge`}
+        href={joinUrl(baseUrl, 'ai-knowledge.json')}
+      />
+      <link
         rel='sitemap'
         type='application/xml'
         title='Sitemap'
@@ -293,7 +299,7 @@ const SEO = props => {
   )
 }
 
-const generateStructuredData = ({
+export const generateStructuredData = ({
   meta,
   siteInfo,
   url,
@@ -322,6 +328,7 @@ const generateStructuredData = ({
   const modifiedAt =
     toISODate(meta?.lastEditedDate || meta?.lastEditedDay) || publishedAt
   const sameAs = getSameAsLinks(NOTION_CONFIG)
+  const topicEntities = getTopicEntities({ meta, keywords, NOTION_CONFIG })
 
   const graph = [
     {
@@ -329,7 +336,8 @@ const generateStructuredData = ({
       '@id': authorId,
       name: author,
       url: baseUrl,
-      sameAs
+      sameAs,
+      knowsAbout: topicEntities
     },
     {
       '@type': 'Organization',
@@ -342,7 +350,8 @@ const generateStructuredData = ({
             url: logo
           }
         : undefined,
-      sameAs
+      sameAs,
+      knowsAbout: topicEntities
     },
     {
       '@type': 'WebSite',
@@ -351,6 +360,7 @@ const generateStructuredData = ({
       name: siteTitle,
       description: siteDescription,
       inLanguage: langCode,
+      about: topicEntities,
       publisher: {
         '@id': publisherId
       },
@@ -369,10 +379,12 @@ const generateStructuredData = ({
       url,
       name: meta?.title || siteTitle,
       description: meta?.description || siteDescription,
+      abstract: meta?.description || siteDescription,
       isPartOf: {
         '@id': websiteId
       },
       inLanguage: langCode,
+      about: topicEntities,
       primaryImageOfPage: image
         ? {
             '@type': 'ImageObject',
@@ -414,6 +426,8 @@ const generateStructuredData = ({
         '@id': publisherId
       },
       inLanguage: langCode,
+      abstract: meta.description,
+      about: topicEntities,
       isAccessibleForFree: !meta.password,
       articleSection: meta.category,
       keywords
@@ -655,6 +669,33 @@ const normalizeKeywords = value => {
 const normalizeCategory = category => {
   if (Array.isArray(category)) return category[0]
   return category || undefined
+}
+
+const getTopicEntities = ({ meta, keywords, NOTION_CONFIG }) => {
+  const topicNames = new Set()
+
+  normalizeKeywords(siteConfig('KEYWORDS', '', NOTION_CONFIG)).forEach(topic =>
+    topicNames.add(topic)
+  )
+
+  normalizeKeywords(keywords).forEach(topic => topicNames.add(topic))
+
+  if (meta?.category) {
+    topicNames.add(normalizeCategory(meta.category))
+  }
+
+  if (Array.isArray(meta?.tags)) {
+    meta.tags.forEach(tag => topicNames.add(tag))
+  }
+
+  return [...topicNames]
+    .map(topic => `${topic || ''}`.trim())
+    .filter(Boolean)
+    .slice(0, 30)
+    .map(topic => ({
+      '@type': 'Thing',
+      name: topic
+    }))
 }
 
 const getSameAsLinks = NOTION_CONFIG => {

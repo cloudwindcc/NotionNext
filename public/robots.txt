@@ -86,3 +86,4 @@ Sitemap: https://www.kang.ink/sitemap.xml
 
 # AI-friendly overview
 # llms.txt: https://www.kang.ink/llms.txt
+# ai-knowledge.json: https://www.kang.ink/ai-knowledge.json
