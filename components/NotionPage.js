@@ -159,35 +159,47 @@ const SeoContentFallback = ({ post }) => {
     .filter(Boolean)
     .join('、')
   const sourceUrl = post['网址']
+  const seoFallback = post.seoFallback
 
   return (
     <article className='notion-page px-4 py-6 text-gray-800 dark:text-gray-200'>
-      <h2>搜索导读</h2>
+      <h2>{seoFallback?.heading || '搜索导读'}</h2>
       <p>
-        <strong>这篇文章回答的问题：</strong>
-        {post.title}讲什么？核心观点是什么？普通读者可以如何理解和实践？
+        <strong>{seoFallback?.questionLabel || '这篇文章回答的问题'}：</strong>
+        {seoFallback?.question ||
+          `${post.title}讲什么？核心观点是什么？普通读者可以如何理解和实践？`}
       </p>
       <p>
-        <strong>AEO 快速答案：</strong>
-        {aiSummary || summary}
+        <strong>{seoFallback?.answerLabel || 'AEO 快速答案'}：</strong>
+        {seoFallback?.answer || aiSummary || summary}
       </p>
       {tags.length > 0 && (
         <p>
-          <strong>核心关键词：</strong>
-          {tags.join('、')}
+          <strong>{seoFallback?.keywordsLabel || '核心关键词'}：</strong>
+          {(seoFallback?.keywords || tags).join('、')}
         </p>
       )}
-      <h2>常见问题</h2>
-      <h3>{post.title}主要讲什么？</h3>
-      <p>{summary}</p>
-      <h3>这篇文章适合谁阅读？</h3>
-      <p>
-        适合关注{audienceTopics || '相关主题'}的读者，也适合希望通过读书笔记快速理解核心观点的人。
-      </p>
-      <h3>这篇文章能解决什么搜索问题？</h3>
-      <p>
-        它围绕书名、作者、核心观点、实践方法和相关关键词进行整理，帮助读者快速判断文章是否值得继续深入阅读。
-      </p>
+      <h2>{seoFallback?.faqHeading || '常见问题'}</h2>
+      {(seoFallback?.faqs || [
+        {
+          question: `${post.title}主要讲什么？`,
+          answer: summary
+        },
+        {
+          question: '这篇文章适合谁阅读？',
+          answer: `适合关注${audienceTopics || '相关主题'}的读者，也适合希望通过读书笔记快速理解核心观点的人。`
+        },
+        {
+          question: '这篇文章能解决什么搜索问题？',
+          answer:
+            '它围绕书名、作者、核心观点、实践方法和相关关键词进行整理，帮助读者快速判断文章是否值得继续深入阅读。'
+        }
+      ]).map(item => (
+        <section key={item.question}>
+          <h3>{item.question}</h3>
+          <p>{item.answer}</p>
+        </section>
+      ))}
       {sourceUrl && (
         <p>
           原书在线阅读：
