@@ -119,27 +119,84 @@ const NotionPage = ({ post, className }) => {
   // const cleanBlockMap = cleanBlocksWithWarn(post?.blockMap);
   // console.log('NotionPage render with post:', post);
 
+  const hasBlockMap = Boolean(post?.blockMap)
+
   return (
     <div
       id='notion-article'
       className={`mx-auto overflow-hidden ${className || ''}`}>
-      <NotionRenderer
-        recordMap={post?.blockMap}
-        mapPageUrl={mapPageUrl}
-        mapImageUrl={mapImgUrl}
-        components={{
-          Code,
-          Collection,
-          Equation,
-          Modal,
-          Pdf,
-          Tweet
-        }}
-      />
+      {hasBlockMap ? (
+        <NotionRenderer
+          recordMap={post?.blockMap}
+          mapPageUrl={mapPageUrl}
+          mapImageUrl={mapImgUrl}
+          components={{
+            Code,
+            Collection,
+            Equation,
+            Modal,
+            Pdf,
+            Tweet
+          }}
+        />
+      ) : (
+        <SeoContentFallback post={post} />
+      )}
 
       <AdEmbed />
       <PrismMac />
     </div>
+  )
+}
+
+const SeoContentFallback = ({ post }) => {
+  if (!post) return null
+
+  const aiSummary = post['AI 摘要'] || post.aiSummary
+  const summary = post.summary || aiSummary || post.title
+  const tags = Array.isArray(post.tags) ? post.tags : []
+  const audienceTopics = [post.category, tags.slice(0, 4).join('、')]
+    .filter(Boolean)
+    .join('、')
+  const sourceUrl = post['网址']
+
+  return (
+    <article className='notion-page px-4 py-6 text-gray-800 dark:text-gray-200'>
+      <h2>搜索导读</h2>
+      <p>
+        <strong>这篇文章回答的问题：</strong>
+        {post.title}讲什么？核心观点是什么？普通读者可以如何理解和实践？
+      </p>
+      <p>
+        <strong>AEO 快速答案：</strong>
+        {aiSummary || summary}
+      </p>
+      {tags.length > 0 && (
+        <p>
+          <strong>核心关键词：</strong>
+          {tags.join('、')}
+        </p>
+      )}
+      <h2>常见问题</h2>
+      <h3>{post.title}主要讲什么？</h3>
+      <p>{summary}</p>
+      <h3>这篇文章适合谁阅读？</h3>
+      <p>
+        适合关注{audienceTopics || '相关主题'}的读者，也适合希望通过读书笔记快速理解核心观点的人。
+      </p>
+      <h3>这篇文章能解决什么搜索问题？</h3>
+      <p>
+        它围绕书名、作者、核心观点、实践方法和相关关键词进行整理，帮助读者快速判断文章是否值得继续深入阅读。
+      </p>
+      {sourceUrl && (
+        <p>
+          原书在线阅读：
+          <a href={sourceUrl} target='_blank' rel='noopener noreferrer'>
+            {sourceUrl}
+          </a>
+        </p>
+      )}
+    </article>
   )
 }
 
