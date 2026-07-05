@@ -86,12 +86,18 @@ function getOutput() {
   return undefined
 }
 
+function getStaticPageGenerationTimeout() {
+  const timeout = Number(process.env.NEXT_STATIC_PAGE_GENERATION_TIMEOUT)
+  if (Number.isFinite(timeout) && timeout > 0) return timeout
+  return 900
+}
+
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true
   },
   output: getOutput(),
-  staticPageGenerationTimeout: 300,
+  staticPageGenerationTimeout: getStaticPageGenerationTimeout(),
 
   // 性能优化配置
   compress: true,
