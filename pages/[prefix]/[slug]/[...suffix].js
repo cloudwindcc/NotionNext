@@ -74,6 +74,16 @@ export async function getStaticProps({
     locale,
   })
 
+  // 旧 UUID 地址命中现存文章：308 跳到当前 slug
+  if (props.redirectToSlug) {
+    return {
+      redirect: {
+        destination: '/' + props.redirectToSlug,
+        permanent: true
+      }
+    }
+  }
+
   return {
     props,
     revalidate: isExport()

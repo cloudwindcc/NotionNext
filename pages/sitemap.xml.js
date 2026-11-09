@@ -3,6 +3,7 @@ import BLOG from '@/blog.config'
 import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 import { extractLangId, extractLangPrefix } from '@/lib/utils/pageId'
+import { isHttpLink } from '@/lib/utils'
 import { getServerSideSitemap } from 'next-sitemap'
 
 export const getServerSideProps = async ctx => {
@@ -84,7 +85,10 @@ function generateLocalesSitemap(link, allPages, locale) {
       ?.filter(
         p =>
           p.status === BLOG.NOTION_PROPERTY_NAME.status_publish &&
-          ['Post', 'Page'].includes(p?.type)
+          ['Post', 'Page'].includes(p?.type) &&
+          // 外链型 slug（如 https://news.kang.ink/）不要拼进本站 sitemap，
+          // 否则会生成 https://www.kang.ink/https://... 这种坏地址被 Google 抓取
+          !isHttpLink(p?.slug)
       )
       ?.map(post => {
         const slugWithoutLeadingSlash = post?.slug.startsWith('/')
