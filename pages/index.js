@@ -71,7 +71,7 @@ export async function getStaticProps(req) {
   generateSogouVerificationTxt(props)
   // 检查数据是否需要从algolia删除
   checkDataFromAlgolia(props)
-  if (siteConfig('UUID_REDIRECT', false, props?.NOTION_CONFIG)) {
+  if (siteConfig('UUID_REDIRECT', BLOG.UUID_REDIRECT, props?.NOTION_CONFIG)) {
     // 生成重定向 JSON
     generateRedirectJson(props)
   }
