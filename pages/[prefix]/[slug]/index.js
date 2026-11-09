@@ -61,25 +61,28 @@ export async function getStaticProps({ params: { prefix, slug }, locale }) {
     locale,
   })
 
+  const revalidate = isExport()
+    ? undefined
+    : siteConfig(
+        'NEXT_REVALIDATE_SECOND',
+        BLOG.NEXT_REVALIDATE_SECOND,
+        props.NOTION_CONFIG
+      )
+
   // 旧 UUID 地址命中现存文章：308 跳到当前 slug
   if (props.redirectToSlug) {
     return {
       redirect: {
         destination: '/' + props.redirectToSlug,
         permanent: true
-      }
+      },
+      revalidate
     }
   }
 
   return {
     props,
-    revalidate: isExport()
-      ? undefined
-      : siteConfig(
-        'NEXT_REVALIDATE_SECOND',
-        BLOG.NEXT_REVALIDATE_SECOND,
-        props.NOTION_CONFIG
-      ),
+    revalidate,
     notFound: !props.post
   }
 }
