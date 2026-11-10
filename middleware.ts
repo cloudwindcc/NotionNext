@@ -2,7 +2,6 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { checkStrIsNotionId, getLastPartOfUrl } from '@/lib/utils'
 import { idToUuid } from 'notion-utils'
-import BLOG from './blog.config'
 
 const AGENT_DISCOVERY_LINKS = [
   '</llms.txt>; rel="alternate"; type="text/plain"; title="llms.txt"',
@@ -45,8 +44,12 @@ const isTenantAdminRoute = createRouteMatcher([
  */
 // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 const noAuthMiddleware = async (req: NextRequest, ev: any) => {
-  // 如果没有配置 Clerk 相关环境变量，返回一个默认响应或者继续处理请求
-  if (BLOG['UUID_REDIRECT']) {
+  // 注意：本站部署在 Cloudflare Pages 静态托管上时，这个中间件在请求时
+  // 根本不会执行，真正的跳转在 functions/[[path]].js（Pages Function）里；
+  // 这里只保留给 Vercel / Node 等有 Next.js 服务在跑的部署方式用。
+  // 开关直接读环境变量，不经过 blog.config 的 CJS 导入，避免边缘运行时
+  // 的模块互操作问题导致开关读不到；默认开启，UUID_REDIRECT=false 关闭。
+  if (process.env.UUID_REDIRECT !== 'false') {
     let redirectJson: Record<string, string> = {}
     try {
       const response = await fetch(`${req.nextUrl.origin}/redirect.json`)
