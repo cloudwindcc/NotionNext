@@ -1,5 +1,13 @@
 {
   "version": 1,
-  "include": ["/"],
+  "include": [
+    "/",
+    "/book/*",
+    "/invest/*",
+    "/dao/*",
+    "/life/*",
+    "/AI/*",
+    "/fin/*"
+  ],
   "exclude": []
 }
